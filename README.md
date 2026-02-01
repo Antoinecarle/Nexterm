@@ -22,32 +22,38 @@ A powerful, self-hosted web interface for managing your Linux server. Terminal, 
 ## Features
 
 ### Web Terminal
-Full-featured terminal with multi-tab support, PTY via `node-pty` and `xterm.js`. WebGL-accelerated rendering, search, clipboard, unicode, and web links. Voice input via Web Speech API. Per-project terminal sessions with persistent history.
+Full-featured terminal with multi-tab support (up to 10 sessions), PTY via `node-pty` and `xterm.js`. WebGL-accelerated rendering, search, clipboard, unicode, and web links. 6 built-in color themes (Default, Dracula, Monokai, Solarized Dark, Nord, One Dark). Voice input via Web Speech API. Saveable command snippets. Per-project terminal sessions with persistent history.
 
 ![Terminal](screenshots/terminal.png)
 
+### AI Command Enhancement
+Built-in AI assistant that improves your shell commands. Powered by OpenAI API with multi-turn conversation support. Type a command, hit "AI Enhance", and get an optimized version. Context is preserved across interactions for smarter suggestions.
+
 ### File Explorer & Code Editor
-Browse your entire filesystem. Edit files with CodeMirror 6 featuring syntax highlighting for JavaScript, TypeScript, JSON, CSS, HTML, Python, YAML, Markdown, and Shell. Tabbed editing, create/delete files and folders.
+Browse your entire filesystem. Edit files with CodeMirror 6 featuring syntax highlighting for JavaScript, TypeScript, JSON, CSS, HTML, Python, YAML, Markdown, and Shell. Tabbed editing, create/delete files and folders. Upload entire folders with preserved directory structure.
 
 ![Files](screenshots/files.png)
 
 ### System Monitoring
-Real-time CPU, memory, and disk usage with auto-refresh. Top processes table sorted by resource consumption. Server hostname, kernel version, and uptime at a glance.
+Real-time CPU, memory, and disk usage with auto-refresh (5s interval). Top processes table sorted by resource consumption. Server hostname, kernel version, load average, and uptime at a glance.
 
 ![System Monitor](screenshots/system.png)
 
 ### Docker Management
-List, start, stop, restart, pause, unpause, and remove containers. View container logs. Browse Docker images. All from a clean card-based interface.
+List, start, stop, restart, pause, unpause, and remove containers. View container logs. Browse Docker images. All from a clean card-based interface with real-time refresh.
 
 ![Docker](screenshots/docker.png)
 
 ### Project Management
-Create new projects, import from GitHub (with real-time git clone progress via SSE), manage terminal sessions per project, and delete projects. Full project lifecycle from one page.
+Create new projects, import from GitHub (with real-time git clone progress via SSE), upload folders, manage terminal sessions per project, and delete projects. Full project lifecycle from one page.
 
 ![Projects](screenshots/projects.png)
 
+### SSH Key Management
+Generate and manage Ed25519 SSH keys directly from the settings page. Test your SSH connection to GitHub with one click. Copy public key to clipboard for easy setup.
+
 ### Mobile-First PWA
-Installable as a Progressive Web App. Bottom navigation bar, touch-friendly controls, responsive layouts. The terminal includes a mobile control bar with arrow keys, Enter, Tab, Esc, and Ctrl shortcuts.
+Installable as a Progressive Web App. Bottom navigation bar, touch-friendly controls (44px minimum tap targets), responsive layouts. The terminal includes a mobile control bar with arrow keys, Enter, Tab, Esc, and Ctrl shortcuts.
 
 <div align="center">
 <img src="screenshots/mobile-dashboard.png" width="280" alt="Mobile Dashboard" />
@@ -219,13 +225,22 @@ All routes (except `/api/auth/login`) require a valid JWT token in the `Authoriz
 | `GET` | `/api/projects` | List projects with metadata |
 | `POST` | `/api/projects` | Create empty project `{name}` |
 | `POST` | `/api/projects/import` | Git clone via SSE `{url, name?}` |
+| `POST` | `/api/projects/upload` | Upload folder (multipart) |
 | `DELETE` | `/api/projects/:name` | Delete project |
+
+### Settings
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/settings/ssh-key` | Get public SSH key |
+| `POST` | `/api/settings/ssh-key/regenerate` | Generate new Ed25519 key pair |
+| `POST` | `/api/settings/ssh-test` | Test SSH connection to GitHub |
 
 ### WebSocket
 
 | Namespace | Events | Description |
 |-----------|--------|-------------|
-| `/terminal` | `create-session`, `attach-session`, `input`, `output`, `resize`, `kill-session` | Real-time PTY terminal |
+| `/terminal` | `create-session`, `attach-session`, `input`, `output`, `resize`, `kill-session`, `ai-enhance`, `ai-reset` | Real-time PTY terminal + AI |
 
 ---
 
@@ -243,7 +258,8 @@ nexterm/
 │       ├── files.js          # File explorer endpoints
 │       ├── docker.js         # Docker management endpoints
 │       ├── terminal.js       # Terminal session CRUD
-│       └── projects.js       # Project management + git import
+│       ├── projects.js       # Project management + git import
+│       └── settings.js       # SSH key management
 │
 ├── client/
 │   ├── src/
@@ -256,7 +272,8 @@ nexterm/
 │   │   │   ├── Files.jsx     # File explorer + code editor
 │   │   │   ├── System.jsx    # System monitor + processes
 │   │   │   ├── Docker.jsx    # Container & image management
-│   │   │   └── Projects.jsx  # Project lifecycle management
+│   │   │   ├── Projects.jsx  # Project lifecycle management
+│   │   │   └── Settings.jsx  # SSH key management
 │   │   ├── components/
 │   │   │   ├── Layout.jsx    # Sidebar (desktop) / bottom nav (mobile)
 │   │   │   ├── StatCard.jsx  # Metric card with progress bar
