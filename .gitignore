@@ -1,0 +1,12 @@
+node_modules/
+client/node_modules/
+client/dist/
+.env
+data/
+ssl/
+*.log
+.mcp.json
+.DS_Store
+*.swp
+*.swo
+nohup.out
