@@ -10,6 +10,8 @@ import SystemPage from './pages/System';
 import Docker from './pages/Docker';
 import Projects from './pages/Projects';
 import Settings from './pages/Settings';
+import Claude from './pages/Claude';
+import Mindmap from './pages/Mindmap';
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) return <Navigate to="/login" replace />;
@@ -28,6 +30,8 @@ export default function App() {
         <Route path="docker" element={<Docker />} />
         <Route path="projects" element={<Projects />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="claude" element={<Claude />} />
+        <Route path="mindmap" element={<Mindmap />} />
       </Route>
     </Routes>
   );

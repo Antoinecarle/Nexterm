@@ -14,6 +14,8 @@ const dockerRoutes = require('./routes/docker');
 const terminalRoutes = require('./routes/terminal');
 const projectsRoutes = require('./routes/projects');
 const settingsRoutes = require('./routes/settings');
+const claudeRoutes = require('./routes/claude');
+const mindmapRoutes = require('./routes/mindmap');
 const { setupTerminal, initSessions } = require('./terminal');
 
 // Ensure /root/ProjectList exists
@@ -64,6 +66,8 @@ app.use('/api/docker', verifyToken, dockerRoutes);
 app.use('/api/terminal', verifyToken, terminalRoutes);
 app.use('/api/projects', verifyToken, projectsRoutes);
 app.use('/api/settings', verifyToken, settingsRoutes);
+app.use('/api/claude', verifyToken, claudeRoutes);
+app.use('/api/mindmap', verifyToken, mindmapRoutes);
 
 // Serve static frontend
 const distPath = path.join(__dirname, '..', 'client', 'dist');
