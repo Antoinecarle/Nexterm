@@ -69,6 +69,25 @@ function findFilesRecursive(dir, filename, results) {
   }
 }
 
+// ─── Get plugin descriptions from marketplace ──────────
+
+function getPluginDescriptions() {
+  const marketplacePath = path.join(MARKETPLACE_DIR, '.claude-plugin', 'marketplace.json');
+  const data = readJsonSafe(marketplacePath);
+  if (!data || !Array.isArray(data.plugins)) return {};
+  const desc = {};
+  for (const p of data.plugins) {
+    if (p.name) desc[p.name] = p.description || '';
+  }
+  // Also check external_plugins array
+  if (Array.isArray(data.external_plugins)) {
+    for (const p of data.external_plugins) {
+      if (p.name) desc[p.name] = p.description || '';
+    }
+  }
+  return desc;
+}
+
 // ─── Get projects ───────────────────────────────────────
 
 function getProjects() {
@@ -135,12 +154,15 @@ function getPluginSkills(pluginName) {
       try {
         const content = fs.readFileSync(skillPath, 'utf-8');
         const parsed = parseFrontmatter(content);
+        const bodyMatch = content.match(/^---\s*\n[\s\S]*?\n---\s*\n([\s\S]*)$/);
+        const body = bodyMatch ? bodyMatch[1].trim() : '';
         const skillDir = path.dirname(skillPath);
         const skillId = path.basename(skillDir);
         skills.push({
           id: skillId,
           name: parsed.name || skillId,
           description: parsed.description || '',
+          content: body,
           plugin: pluginName,
         });
       } catch (_) {}
@@ -154,6 +176,8 @@ function getPluginSkills(pluginName) {
         for (const cmd of cmds) {
           const content = fs.readFileSync(path.join(commandsDir, cmd), 'utf-8');
           const parsed = parseFrontmatter(content);
+          const bodyMatch = content.match(/^---\s*\n[\s\S]*?\n---\s*\n([\s\S]*)$/);
+          const body = bodyMatch ? bodyMatch[1].trim() : '';
           const cmdName = cmd.replace('.md', '');
           // Don't duplicate if already found as a skill
           if (!skills.find((s) => s.id === cmdName)) {
@@ -161,6 +185,7 @@ function getPluginSkills(pluginName) {
               id: cmdName,
               name: parsed.name || cmdName,
               description: parsed.description || '',
+              content: body,
               plugin: pluginName,
             });
           }
@@ -182,10 +207,13 @@ function getPluginSkills(pluginName) {
               if (!skills.find((s) => s.id === cmdName)) {
                 const content = fs.readFileSync(path.join(cacheCmdsDir, cmd), 'utf-8');
                 const parsed = parseFrontmatter(content);
+                const bodyMatch = content.match(/^---\s*\n[\s\S]*?\n---\s*\n([\s\S]*)$/);
+                const body = bodyMatch ? bodyMatch[1].trim() : '';
                 skills.push({
                   id: cmdName,
                   name: parsed.name || cmdName,
                   description: parsed.description || '',
+                  content: body,
                   plugin: pluginName,
                 });
               }
@@ -314,10 +342,13 @@ function getUserSkills() {
       try {
         const content = fs.readFileSync(skillMdPath, 'utf-8');
         const parsed = parseFrontmatter(content);
+        const bodyMatch = content.match(/^---\s*\n[\s\S]*?\n---\s*\n([\s\S]*)$/);
+        const body = bodyMatch ? bodyMatch[1].trim() : '';
         skills.push({
           id: entry.name,
           name: parsed.name || entry.name,
           description: parsed.description || '',
+          content: body,
           scope: 'user',
         });
       } catch (_) {}
@@ -385,6 +416,7 @@ router.get('/data', (req, res) => {
 
     const nodes = [];
     const autoLinks = [];
+    const pluginDescriptions = getPluginDescriptions();
 
     // --- Nexterm core node (central hub) ---
     const nextermPath = '/root/project';
@@ -430,6 +462,7 @@ router.get('/data', (req, res) => {
           id: pluginNodeId,
           type: 'plugin',
           name: plugin.name,
+          description: pluginDescriptions[plugin.name] || '',
           scope: plugin.scope,
           isMcp,
         });
@@ -444,6 +477,7 @@ router.get('/data', (req, res) => {
               type: 'skill',
               name: skill.name,
               description: skill.description,
+              content: skill.content || '',
               plugin: skill.plugin,
             });
             nodes.push(allSkillNodes.get(skillNodeId));
@@ -470,15 +504,46 @@ router.get('/data', (req, res) => {
         }
       }
 
-      // Auto-link: project → plugin (based on scope)
-      for (const p of projects) {
-        if (pluginAppliesToProject(plugin, p.path)) {
-          autoLinks.push({
-            source: `project:${p.name}`,
-            target: pluginNodeId,
-            type: 'uses',
-          });
-        }
+      // Auto-link: global plugins (user/local scope) → nexterm core
+      // Project-scoped plugins → their specific project
+      if (plugin.scope === 'user' || plugin.scope === 'local') {
+        autoLinks.push({
+          source: 'project:nexterm',
+          target: pluginNodeId,
+          type: 'uses',
+        });
+      } else if (plugin.scope === 'project' && plugin.projectPath) {
+        const projectName = path.basename(plugin.projectPath);
+        autoLinks.push({
+          source: `project:${projectName}`,
+          target: pluginNodeId,
+          type: 'uses',
+        });
+      }
+    }
+
+    // --- Global MCP servers (from ~/.claude.json) ---
+    const globalMcpServers = getGlobalMcpServers();
+    for (const mcp of globalMcpServers) {
+      const mcpNodeId = `plugin:${mcp.name}`;
+      if (!seenPlugins.has(mcp.name)) {
+        seenPlugins.add(mcp.name);
+        nodes.push({
+          id: mcpNodeId,
+          type: 'plugin',
+          name: mcp.name,
+          scope: 'global',
+          isMcp: true,
+          mcpType: mcp.type,
+          mcpCommand: mcp.command || '',
+          mcpUrl: mcp.url || '',
+        });
+        // MCP servers are global tools, link to nexterm core
+        autoLinks.push({
+          source: 'project:nexterm',
+          target: mcpNodeId,
+          type: 'uses',
+        });
       }
     }
 
@@ -492,6 +557,7 @@ router.get('/data', (req, res) => {
           type: 'skill',
           name: skill.name,
           description: skill.description,
+          content: skill.content || '',
           scope: 'user',
         });
         nodes.push(allSkillNodes.get(skillNodeId));

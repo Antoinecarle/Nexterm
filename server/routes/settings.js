@@ -66,4 +66,54 @@ router.post('/ssh-test', (req, res) => {
   );
 });
 
+// --- API Keys Management ---
+
+// GET /api/settings/api-keys — Read masked API keys + status
+router.get('/api-keys', (req, res) => {
+  const mask = (key) => key ? '****' + key.slice(-6) : '';
+  res.json({
+    openai: {
+      configured: !!process.env.OPENAI_API_KEY,
+      masked: mask(process.env.OPENAI_API_KEY),
+    },
+    googleAi: {
+      configured: !!process.env.GOOGLE_AI_API_KEY,
+      masked: mask(process.env.GOOGLE_AI_API_KEY),
+    },
+  });
+});
+
+// PUT /api/settings/api-keys — Write API keys to .env + update process.env
+router.put('/api-keys', (req, res) => {
+  try {
+    const { openaiApiKey, googleAiApiKey } = req.body;
+    const envPath = path.join(__dirname, '..', '..', '.env');
+
+    let envContent = fs.readFileSync(envPath, 'utf8');
+
+    if (openaiApiKey && openaiApiKey !== '') {
+      if (envContent.match(/^OPENAI_API_KEY=.*$/m)) {
+        envContent = envContent.replace(/^OPENAI_API_KEY=.*$/m, `OPENAI_API_KEY=${openaiApiKey}`);
+      } else {
+        envContent += `\nOPENAI_API_KEY=${openaiApiKey}`;
+      }
+      process.env.OPENAI_API_KEY = openaiApiKey;
+    }
+
+    if (googleAiApiKey && googleAiApiKey !== '') {
+      if (envContent.match(/^GOOGLE_AI_API_KEY=.*$/m)) {
+        envContent = envContent.replace(/^GOOGLE_AI_API_KEY=.*$/m, `GOOGLE_AI_API_KEY=${googleAiApiKey}`);
+      } else {
+        envContent += `\nGOOGLE_AI_API_KEY=${googleAiApiKey}`;
+      }
+      process.env.GOOGLE_AI_API_KEY = googleAiApiKey;
+    }
+
+    fs.writeFileSync(envPath, envContent);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

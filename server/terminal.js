@@ -15,7 +15,7 @@ const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1h
 const PROJECT_ROOT = '/root/ProjectList';
 
 // --- Persistent session store ---
-// Map<sessionId, { id, pty, scrollback, createdAt, lastActivity, cols, rows, title, project, clients, outputBuffer, flushTimer, exited }>
+// Map<sessionId, { id, pty, scrollback, createdAt, lastActivity, cols, rows, title, project, userId, clients, outputBuffer, flushTimer, exited }>
 const sessions = new Map();
 
 // --- Helpers ---
@@ -31,7 +31,7 @@ function appendScrollback(session, data) {
   }
 }
 
-function createSession(cols, rows, name, project) {
+function createSession(cols, rows, name, project, userId) {
   if (sessions.size >= MAX_SESSIONS) {
     return null;
   }
@@ -73,6 +73,7 @@ function createSession(cols, rows, name, project) {
     rows: rows || 30,
     title: sessionTitle,
     project: project || '',
+    userId: userId || '',
     clients: new Set(),
     outputBuffer: '',
     flushTimer: null,
@@ -130,7 +131,7 @@ function createSession(cols, rows, name, project) {
   sessions.set(id, session);
 
   // Persist to SQLite
-  db.insertSession(id, sessionTitle, session.createdAt, project || '', cwd, shell);
+  db.insertSession(id, sessionTitle, session.createdAt, project || '', cwd, shell, userId || '');
 
   return session;
 }
@@ -159,6 +160,7 @@ function getSessionInfo(session) {
     id: session.id,
     title: session.title,
     project: session.project,
+    userId: session.userId,
     createdAt: session.createdAt,
     lastActivity: session.lastActivity,
     cols: session.cols,
@@ -167,7 +169,16 @@ function getSessionInfo(session) {
   };
 }
 
-function listSessions() {
+function listSessions(userId) {
+  const list = [];
+  for (const session of sessions.values()) {
+    if (userId && session.userId !== userId) continue;
+    list.push(getSessionInfo(session));
+  }
+  return list;
+}
+
+function listAllSessions() {
   const list = [];
   for (const session of sessions.values()) {
     list.push(getSessionInfo(session));
@@ -193,6 +204,13 @@ function renameSession(id, title) {
   return getSessionInfo(session);
 }
 
+// --- Ownership check ---
+function canAccessSession(session, user) {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  return session.userId === user.userId;
+}
+
 // --- Idle cleanup ---
 function cleanupIdleSessions() {
   const now = Date.now();
@@ -214,12 +232,13 @@ let cleanupTimer = null;
 function setupTerminal(io) {
   const termNamespace = io.of('/terminal');
 
-  // JWT auth middleware
+  // JWT auth middleware — extract user info
   termNamespace.use((socket, next) => {
     const token = socket.handshake.auth.token || socket.handshake.query.token;
     if (!token) return next(new Error('Authentication required'));
     try {
-      jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.user = decoded; // { userId, email, role }
       next();
     } catch {
       next(new Error('Invalid token'));
@@ -236,14 +255,14 @@ function setupTerminal(io) {
     // Track which session this socket is currently attached to
     let currentSessionId = null;
 
-    // --- List sessions ---
+    // --- List sessions (scoped to user) ---
     socket.on('list-sessions', (callback) => {
-      if (typeof callback === 'function') callback(listSessions());
+      if (typeof callback === 'function') callback(listSessions(socket.user.userId));
     });
 
-    // --- Create session ---
+    // --- Create session (with userId) ---
     socket.on('create-session', ({ cols, rows, project } = {}, callback) => {
-      const session = createSession(cols, rows, null, project);
+      const session = createSession(cols, rows, null, project, socket.user.userId);
       if (!session) {
         if (typeof callback === 'function') callback({ error: 'Max sessions reached (limit: ' + MAX_SESSIONS + ')' });
         return;
@@ -251,11 +270,17 @@ function setupTerminal(io) {
       if (typeof callback === 'function') callback(getSessionInfo(session));
     });
 
-    // --- Attach session ---
+    // --- Attach session (with ownership check) ---
     socket.on('attach-session', ({ id, cols, rows, replay } = {}, callback) => {
       const session = sessions.get(id);
       if (!session) {
         if (typeof callback === 'function') callback({ error: 'Session not found' });
+        return;
+      }
+
+      // Ownership check
+      if (!canAccessSession(session, socket.user)) {
+        if (typeof callback === 'function') callback({ error: 'Access denied' });
         return;
       }
 
@@ -285,8 +310,13 @@ function setupTerminal(io) {
       if (typeof callback === 'function') callback(getSessionInfo(session));
     });
 
-    // --- Kill session ---
+    // --- Kill session (with ownership check) ---
     socket.on('kill-session', ({ id } = {}, callback) => {
+      const session = sessions.get(id);
+      if (session && !canAccessSession(session, socket.user)) {
+        if (typeof callback === 'function') callback({ error: 'Access denied' });
+        return;
+      }
       if (currentSessionId === id) {
         currentSessionId = null;
       }
@@ -296,6 +326,11 @@ function setupTerminal(io) {
 
     // --- Rename session ---
     socket.on('rename-session', ({ id, title } = {}, callback) => {
+      const session = sessions.get(id);
+      if (session && !canAccessSession(session, socket.user)) {
+        if (typeof callback === 'function') callback({ error: 'Access denied' });
+        return;
+      }
       const result = renameSession(id, title);
       if (!result) {
         if (typeof callback === 'function') callback({ error: 'Session not found' });
@@ -418,4 +453,16 @@ function setupTerminal(io) {
   });
 }
 
-module.exports = { setupTerminal, initSessions, listSessions, getSessionsByProject, createSession, destroySession, renameSession, getSessionInfo: (id) => { const s = sessions.get(id); return s ? getSessionInfo(s) : null; } };
+module.exports = {
+  setupTerminal,
+  initSessions,
+  listSessions,
+  listAllSessions,
+  getSessionsByProject,
+  createSession,
+  destroySession,
+  renameSession,
+  canAccessSession,
+  getSessionInfo: (id) => { const s = sessions.get(id); return s ? getSessionInfo(s) : null; },
+  getSession: (id) => sessions.get(id),
+};

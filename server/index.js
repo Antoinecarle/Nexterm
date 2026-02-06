@@ -7,7 +7,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const { router: authRouter, verifyToken } = require('./auth');
+const { router: authRouter, verifyToken, requireAdmin } = require('./auth');
 const systemRoutes = require('./routes/system');
 const filesRoutes = require('./routes/files');
 const dockerRoutes = require('./routes/docker');
@@ -16,7 +16,13 @@ const projectsRoutes = require('./routes/projects');
 const settingsRoutes = require('./routes/settings');
 const claudeRoutes = require('./routes/claude');
 const mindmapRoutes = require('./routes/mindmap');
+const mediaRoutes = require('./routes/media');
+const accountRoutes = require('./routes/account');
+const adminRoutes = require('./routes/admin');
+const ragRoutes = require('./routes/rag');
+const mediaAiRoutes = require('./routes/media-ai');
 const { setupTerminal, initSessions } = require('./terminal');
+const { setupPresence } = require('./presence');
 
 // Ensure /root/ProjectList exists
 const projectListDir = '/root/ProjectList';
@@ -24,8 +30,9 @@ if (!fs.existsSync(projectListDir)) {
   fs.mkdirSync(projectListDir, { recursive: true });
 }
 
-// Import db to trigger schema creation
-require('./db');
+// Import db to trigger schema creation + seed admin
+const db = require('./db');
+db.seedAdmin();
 
 // Clean slate for terminal sessions on startup
 initSessions();
@@ -68,6 +75,13 @@ app.use('/api/projects', verifyToken, projectsRoutes);
 app.use('/api/settings', verifyToken, settingsRoutes);
 app.use('/api/claude', verifyToken, claudeRoutes);
 app.use('/api/mindmap', verifyToken, mindmapRoutes);
+app.use('/api/media', verifyToken, mediaRoutes);
+app.use('/api/account', verifyToken, accountRoutes);
+app.use('/api/rag', verifyToken, ragRoutes);
+app.use('/api/media-ai', verifyToken, mediaAiRoutes);
+
+// Admin routes (token + admin role required)
+app.use('/api/admin', verifyToken, requireAdmin, adminRoutes);
 
 // Serve static frontend
 const distPath = path.join(__dirname, '..', 'client', 'dist');
@@ -78,6 +92,9 @@ app.get('*', (req, res) => {
 
 // Setup terminal WebSocket
 setupTerminal(io);
+
+// Setup presence WebSocket
+setupPresence(io);
 
 const PORT = process.env.PORT || 3000;
 const SSL_PORT = process.env.SSL_PORT || 443;

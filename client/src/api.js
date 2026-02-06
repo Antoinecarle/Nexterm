@@ -16,6 +16,21 @@ export function isAuthenticated() {
   return !!getToken();
 }
 
+export function getUser() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return { userId: payload.userId, email: payload.email, role: payload.role };
+  } catch {
+    return null;
+  }
+}
+
+export function isAdmin() {
+  return getUser()?.role === 'admin';
+}
+
 export async function api(path, options = {}) {
   const token = getToken();
   const headers = { 'Content-Type': 'application/json', ...options.headers };

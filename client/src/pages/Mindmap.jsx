@@ -1101,6 +1101,12 @@ export default function Mindmap() {
                   {selectedNode.isMcp && (
                     <span className="mindmap-panel-meta mindmap-mcp-badge">MCP Server</span>
                   )}
+                  {selectedNode.mcpType && (
+                    <span className="mindmap-panel-meta">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/></svg>
+                      {selectedNode.mcpType}
+                    </span>
+                  )}
                   {selectedNode.model && (
                     <span className="mindmap-panel-meta">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
@@ -1120,6 +1126,41 @@ export default function Mindmap() {
                     </span>
                   )}
                 </div>
+
+                {/* MCP Server details */}
+                {selectedNode.type === 'plugin' && selectedNode.isMcp && (selectedNode.mcpCommand || selectedNode.mcpUrl) && (
+                  <div className="mindmap-panel-detail-section">
+                    <h4>MCP Configuration</h4>
+                    <div className="mindmap-panel-detail-grid">
+                      {selectedNode.mcpType && (
+                        <div className="mindmap-panel-detail-row">
+                          <span className="mindmap-panel-detail-label">Type</span>
+                          <span className="mindmap-panel-detail-value">{selectedNode.mcpType}</span>
+                        </div>
+                      )}
+                      {selectedNode.mcpCommand && (
+                        <div className="mindmap-panel-detail-row">
+                          <span className="mindmap-panel-detail-label">Command</span>
+                          <code className="mindmap-panel-detail-code">{selectedNode.mcpCommand}</code>
+                        </div>
+                      )}
+                      {selectedNode.mcpUrl && (
+                        <div className="mindmap-panel-detail-row">
+                          <span className="mindmap-panel-detail-label">URL</span>
+                          <code className="mindmap-panel-detail-code">{selectedNode.mcpUrl}</code>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Skill content preview */}
+                {selectedNode.type === 'skill' && selectedNode.content && (
+                  <div className="mindmap-panel-prompt">
+                    <h4>Instructions</h4>
+                    <pre className="mindmap-panel-prompt-content">{selectedNode.content}</pre>
+                  </div>
+                )}
 
                 {selectedNode.prompt && (
                   <div className="mindmap-panel-prompt">

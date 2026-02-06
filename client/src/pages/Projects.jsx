@@ -48,6 +48,11 @@ export default function Projects() {
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  // RAG index state
+  const [ragIndexes, setRagIndexes] = useState({});
+  const [indexingState, setIndexingState] = useState({ active: false, project: null, progress: 0, message: '' });
+  const [polledProgress, setPolledProgress] = useState({}); // { [projectName]: { progress, message, logs, active } }
+
   const fetchProjects = async () => {
     try {
       const data = await api('/api/projects');
@@ -77,11 +82,48 @@ export default function Projects() {
     setProjectTerminals(terminals);
   }, []);
 
+  const fetchRagStatus = async () => {
+    try {
+      const res = await api('/api/rag/status');
+      const map = {};
+      for (const idx of (res.indexes || [])) {
+        map[idx.project_name] = idx;
+      }
+      setRagIndexes(map);
+    } catch { /* silent */ }
+  };
+
   useEffect(() => {
     fetchProjects().then((data) => {
       if (data.length > 0) fetchTerminalsForProjects(data);
     });
+    fetchRagStatus();
   }, []);
+
+  // Poll progress for projects that are "indexing" in DB (covers page reload)
+  useEffect(() => {
+    const indexingProjects = Object.entries(ragIndexes)
+      .filter(([, idx]) => idx.status === 'indexing')
+      .map(([name]) => name);
+
+    if (indexingProjects.length === 0) return;
+
+    const pollAll = async () => {
+      for (const name of indexingProjects) {
+        try {
+          const res = await api(`/api/rag/index/${encodeURIComponent(name)}/progress`);
+          setPolledProgress(prev => ({ ...prev, [name]: res }));
+          if (!res.active) {
+            fetchRagStatus(); // indexing finished, refresh status
+          }
+        } catch { /* silent */ }
+      }
+    };
+
+    pollAll();
+    const interval = setInterval(pollAll, 2000);
+    return () => clearInterval(interval);
+  }, [ragIndexes]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -292,6 +334,53 @@ export default function Projects() {
     navigate(`/terminal?project=${encodeURIComponent(projectName)}`);
   };
 
+  const handleIndexProject = async (projectName) => {
+    if (indexingState.active) return;
+    setIndexingState({ active: true, project: projectName, progress: 0, message: 'Starting...' });
+
+    try {
+      const response = await fetch(`/api/rag/index/${encodeURIComponent(projectName)}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getToken()}` },
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(l => l.trim().startsWith('data: '));
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line.replace('data: ', ''));
+            if (data.type === 'progress' || data.type === 'status') {
+              const pct = data.total ? Math.round((data.current / data.total) * 100) : 0;
+              setIndexingState(prev => ({ ...prev, progress: pct, message: data.message || '' }));
+            } else if (data.type === 'done') {
+              setIndexingState({ active: false, project: null, progress: 100, message: '' });
+              fetchRagStatus();
+            } else if (data.type === 'error') {
+              setIndexingState({ active: false, project: null, progress: 0, message: '' });
+              fetchRagStatus();
+            }
+          } catch { /* parse error */ }
+        }
+      }
+    } catch {
+      setIndexingState({ active: false, project: null, progress: 0, message: '' });
+    }
+  };
+
+  const handleDeleteIndex = async (projectName) => {
+    try {
+      await api(`/api/rag/index/${encodeURIComponent(projectName)}`, { method: 'DELETE' });
+      fetchRagStatus();
+    } catch { /* silent */ }
+  };
+
   const closeImportModal = () => {
     if (cloning) return;
     setShowImport(false);
@@ -403,6 +492,100 @@ export default function Projects() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* RAG Index section */}
+                <div style={{ padding: '10px 0', borderTop: '1px solid var(--border)', marginTop: 8 }}>
+                  {(() => {
+                    const sseActive = indexingState.active && indexingState.project === p.name;
+                    const idx = ragIndexes[p.name];
+                    const polled = polledProgress[p.name];
+                    const dbIndexing = idx?.status === 'indexing';
+                    const isIndexing = sseActive || (dbIndexing && polled?.active);
+                    const status = isIndexing ? 'indexing' : (idx?.status || 'not_indexed');
+
+                    // Progress: prefer SSE if active, else use polled data
+                    const pct = sseActive ? indexingState.progress : (polled?.progress || 0);
+                    const msg = sseActive ? indexingState.message : (polled?.message || '');
+                    const logs = (!sseActive && polled?.logs) ? polled.logs : [];
+
+                    const badgeStyles = {
+                      ready: { bg: 'rgba(16,185,129,0.1)', color: 'var(--success)', label: 'Indexed' },
+                      indexing: { bg: 'var(--primary-glow)', color: 'var(--primary)', label: 'Indexing...' },
+                      error: { bg: 'var(--danger-glow)', color: 'var(--danger)', label: 'Error' },
+                      pending: { bg: 'var(--warning-glow)', color: 'var(--warning)', label: 'Pending' },
+                      not_indexed: { bg: 'var(--bg-input)', color: 'var(--text-dim)', label: 'Not Indexed' },
+                    };
+                    const badge = badgeStyles[status] || badgeStyles.not_indexed;
+
+                    return (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={badge.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                            <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', padding: '2px 8px', borderRadius: 10, backgroundColor: badge.bg, color: badge.color }}>
+                              {badge.label}
+                            </span>
+                            {status === 'ready' && idx && (
+                              <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                                {idx.total_files} files · {idx.total_chunks} chunks
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {status !== 'indexing' && (
+                              <button
+                                className="btn btn-xs btn-ghost"
+                                onClick={() => handleIndexProject(p.name)}
+                                disabled={indexingState.active}
+                                title={status === 'ready' ? 'Re-index' : 'Index'}
+                              >
+                                {status === 'ready' ? 'Re-index' : 'Index'}
+                              </button>
+                            )}
+                            {(status === 'ready' || status === 'error') && (
+                              <button
+                                className="btn btn-xs btn-ghost"
+                                style={{ color: 'var(--danger)' }}
+                                onClick={() => handleDeleteIndex(p.name)}
+                                title="Delete index"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {status === 'error' && idx?.error_message && (
+                          <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 'var(--radius-xs)', backgroundColor: 'var(--danger-glow)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--danger)', textTransform: 'uppercase', marginBottom: 4 }}>Error details</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                              {idx.error_message}
+                            </div>
+                          </div>
+                        )}
+
+                        {isIndexing && (
+                          <div style={{ marginTop: 8 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                              <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '70%' }}>
+                                {msg}
+                              </span>
+                              <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{pct}%</span>
+                            </div>
+                            <div style={{ height: 4, backgroundColor: 'var(--bg-input)', borderRadius: 2, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct}%`, backgroundColor: 'var(--primary)', transition: 'width 0.3s ease', borderRadius: 2 }} />
+                            </div>
+                            {logs.length > 0 && (
+                              <div style={{ marginTop: 8, maxHeight: 80, overflowY: 'auto', fontSize: 10, fontFamily: 'monospace', color: 'var(--text-dim)', padding: 6, backgroundColor: '#000', borderRadius: 4 }}>
+                                {logs.map((log, i) => <div key={i}>{`> ${log}`}</div>)}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Main action button */}

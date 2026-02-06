@@ -10,3 +10,4 @@ ssl/
 *.swp
 *.swo
 nohup.out
+media/

@@ -4,7 +4,7 @@
 
 ### AI-Powered Self-Hosted VPS Management
 
-Manage your Linux server with AI at the core. Claude Code agents, interactive mindmap, AI-enhanced terminal, file explorer, Docker, monitoring -- a complete development cockpit from your browser.
+Manage your Linux server with AI at the core. Claude Code agents, interactive mindmap, AI-enhanced terminal, RAG-powered codebase search, media management with AI campaigns, multi-user system, file explorer, Docker, monitoring -- a complete development cockpit from your browser.
 
 [![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev/)
@@ -82,9 +82,48 @@ Real-time CPU, memory, disk with 5s auto-refresh. Top processes, hostname, kerne
 
 ![System Monitor](screenshots/system.png)
 
+### RAG Index -- AI-Powered Codebase Search
+
+Index your projects into a Qdrant vector database and chat with your codebase. Ask questions about any indexed project and get context-aware answers powered by embeddings and GPT.
+
+- **One-click indexing** -- select a project, hit play, and the RAG engine chunks, embeds, and stores your code
+- **Qdrant integration** -- real-time engine status, collection stats (files, chunks)
+- **Chat interface** -- select an indexed project from the dropdown and ask questions about the code
+- **Multi-project support** -- index and query across all your projects independently
+- **Re-index** -- update the index when your codebase changes
+
+![RAG Index](screenshots/rag.png)
+
+### Media Library & AI Campaigns
+
+Upload, manage, and organize media assets (images, videos, PDFs, text files). Built-in AI-powered campaign tools for social media content generation with Gemini.
+
+- **Drag & drop upload** -- drop files directly into the library
+- **Image Studio** -- AI image generation with Google Gemini
+- **Campaigns** -- create social media campaigns with AI-generated captions and hashtags
+- **Preview & download** -- inline preview for images, download any asset
+- **File metadata** -- size, date, type displayed for each asset
+
+![Media](screenshots/media.png)
+
+### Multi-User System & Admin Backoffice
+
+Full multi-user support with role-based access control, invitation system, and real-time presence tracking.
+
+- **User management** -- create, deactivate, change roles (admin/user)
+- **Invitation system** -- invite users via email (Resend), set-password flow
+- **Real-time presence** -- see who's online with Socket.IO presence namespace
+- **Admin backoffice** -- manage users, invitations, and email settings from a dedicated panel
+- **Account settings** -- profile photo, name, notification preferences, password change, active sessions
+
+![Admin](screenshots/admin.png)
+![Account](screenshots/account.png)
+
 ### SSH Key Management
 
 Generate Ed25519 keys, test GitHub connection, copy public key -- all from settings.
+
+![Settings](screenshots/settings.png)
 
 ### Mobile-First PWA
 
@@ -102,11 +141,13 @@ Installable PWA. Bottom nav, 44px touch targets, responsive layouts. Mobile term
 
 | Layer | Technologies |
 |-------|-------------|
-| **AI** | OpenAI API (gpt-5-mini), Claude Code CLI, custom agents (`~/.claude/agents/*.md`) |
+| **AI** | OpenAI API (gpt-5-mini), Google Gemini, Claude Code CLI, custom agents (`~/.claude/agents/*.md`) |
+| **RAG** | Qdrant vector database, text chunking, embeddings, semantic search |
 | **Backend** | Node.js, Express, Socket.IO, node-pty, better-sqlite3 |
 | **Frontend** | React 18, Vite 5, React Router 6, D3.js, xterm.js 5, CodeMirror 6 |
-| **Auth** | JWT (24h expiry) + bcrypt password hashing |
-| **Database** | SQLite (sessions, mindmap state, agent tracking) |
+| **Auth** | JWT (24h expiry) + bcrypt password hashing, multi-user RBAC |
+| **Database** | SQLite (users, sessions, mindmap, agents, media, invitations) |
+| **Email** | Resend (transactional emails, invitations) |
 | **SSL** | Self-signed certificate (auto-generated) |
 | **PWA** | Service worker, manifest, offline shell caching |
 | **Style** | Custom CSS, dark theme, mobile-first responsive |
@@ -170,6 +211,11 @@ PASSWORD_HASH=$2a$10$YOUR_BCRYPT_HASH_HERE
 JWT_SECRET=your-secret-key-here
 PORT=3000
 SSL_PORT=443
+OPENAI_API_KEY=sk-...
+GOOGLE_AI_API_KEY=AIza...
+QDRANT_URL=http://localhost:6333
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=YourApp <noreply@yourdomain.com>
 ```
 
 Generate a bcrypt hash for your password:
@@ -193,7 +239,7 @@ node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('your-password', 10).th
 │                                                      │
 │  ┌──────────┐  ┌──────────┐  ┌────────────────────┐ │
 │  │ REST API │  │ Static   │  │    Socket.IO       │ │
-│  │  (JWT)   │  │ Files    │  │ (Terminal + AI)    │ │
+│  │  (JWT)   │  │ Files    │  │ Terminal/Presence  │ │
 │  └────┬─────┘  └──────────┘  └────────┬───────────┘ │
 │       │                               │              │
 │  ┌────▼───────────────────────────────▼────────────┐ │
@@ -203,6 +249,11 @@ node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('your-password', 10).th
 │  │  │node-pty │ │SQLite  │ │Docker  │ │OpenAI   │ │ │
 │  │  │ (PTY)   │ │ (DB)   │ │  API   │ │  API    │ │ │
 │  │  └─────────┘ └────────┘ └────────┘ └─────────┘ │ │
+│  │                                                  │ │
+│  │  ┌─────────┐ ┌────────┐ ┌────────────────────┐ │ │
+│  │  │Qdrant  │ │Gemini  │ │ Resend (Email)     │ │ │
+│  │  │(Vector)│ │  API   │ │                    │ │ │
+│  │  └─────────┘ └────────┘ └────────────────────┘ │ │
 │  │                                                  │ │
 │  │  ┌──────────────────────────────────────────┐   │ │
 │  │  │  ~/.claude/agents/*.md  (Claude Code)    │   │ │
@@ -297,12 +348,64 @@ All routes (except `/api/auth/login`) require a valid JWT token in the `Authoriz
 | `GET` | `/api/settings/ssh-key` | Get public SSH key |
 | `POST` | `/api/settings/ssh-key/regenerate` | Generate new Ed25519 key pair |
 | `POST` | `/api/settings/ssh-test` | Test SSH connection to GitHub |
+| `GET` | `/api/settings/api-keys` | Get configured API keys |
+| `PUT` | `/api/settings/api-keys` | Update API keys |
+
+### RAG Index
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/rag/status` | Qdrant engine status |
+| `POST` | `/api/rag/index/:projectName` | Index a project into Qdrant |
+| `DELETE` | `/api/rag/index/:projectName` | Delete project index |
+| `POST` | `/api/rag/query` | Query indexed project `{project, question, history}` |
+| `GET` | `/api/rag/collections` | List all indexed collections |
+
+### Media
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/media` | List all media files |
+| `POST` | `/api/media/upload` | Upload media file (multipart) |
+| `DELETE` | `/api/media/:filename` | Delete media file |
+| `GET` | `/api/media/file/:filename` | Serve/download media file |
+
+### Media AI (Campaigns & Image Studio)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/api/media-ai/generate-caption` | AI-generate social media caption |
+| `POST` | `/api/media-ai/generate-image` | AI-generate image with Gemini |
+| `POST` | `/api/media-ai/campaign` | Create AI campaign (image + caption + hashtags) |
+
+### Admin
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/admin/users` | List all users (admin only) |
+| `POST` | `/api/admin/invite` | Send invitation email `{email, role}` |
+| `PATCH` | `/api/admin/users/:id/role` | Change user role |
+| `PATCH` | `/api/admin/users/:id/status` | Activate/deactivate user |
+| `GET` | `/api/admin/invitations` | List pending invitations |
+| `DELETE` | `/api/admin/invitations/:id` | Cancel invitation |
+| `GET` | `/api/admin/email-settings` | Get email configuration |
+| `PUT` | `/api/admin/email-settings` | Update email settings |
+
+### Account
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/account/profile` | Get current user profile |
+| `PUT` | `/api/account/profile` | Update profile (name, avatar) |
+| `PUT` | `/api/account/password` | Change password |
+| `GET` | `/api/account/sessions` | List active sessions |
 
 ### WebSocket
 
 | Namespace | Events | Description |
 |-----------|--------|-------------|
 | `/terminal` | `create-session`, `attach-session`, `input`, `output`, `resize`, `kill-session`, `ai-enhance`, `ai-reset` | Real-time PTY terminal + AI |
+| `/presence` | `user-online`, `user-offline`, `online-users` | Real-time user presence tracking |
 
 ---
 
@@ -312,18 +415,29 @@ All routes (except `/api/auth/login`) require a valid JWT token in the `Authoriz
 nexterm/
 ├── server/
 │   ├── index.js              # Entry point: Express + HTTPS + Socket.IO
-│   ├── auth.js               # JWT authentication + middleware
-│   ├── db.js                 # SQLite database (sessions, mindmap, agents)
+│   ├── auth.js               # JWT authentication + multi-user middleware
+│   ├── db.js                 # SQLite database (users, sessions, mindmap, media)
 │   ├── terminal.js           # WebSocket PTY terminal handler
+│   ├── presence.js           # Socket.IO presence namespace (who's online)
+│   ├── rag/
+│   │   ├── chunker.js        # Code file chunking for RAG
+│   │   ├── embedder.js       # Text embedding via OpenAI
+│   │   ├── indexer.js        # Project indexing pipeline
+│   │   └── qdrant.js         # Qdrant vector DB client
 │   └── routes/
 │       ├── mindmap.js        # Mindmap CRUD, agents, AI assist
 │       ├── claude.js         # Claude Code config endpoints
+│       ├── rag.js            # RAG index & query endpoints
+│       ├── media.js          # Media library CRUD
+│       ├── media-ai.js       # AI campaigns & image generation (Gemini)
+│       ├── admin.js          # Admin backoffice (users, invitations, email)
+│       ├── account.js        # Account profile & settings
 │       ├── system.js         # System monitoring endpoints
 │       ├── files.js          # File explorer endpoints
 │       ├── docker.js         # Docker management endpoints
 │       ├── terminal.js       # Terminal session CRUD
 │       ├── projects.js       # Project management + git import
-│       └── settings.js       # SSH key management
+│       └── settings.js       # SSH key & API key management
 │
 ├── client/
 │   ├── src/
@@ -332,18 +446,21 @@ nexterm/
 │   │   ├── pages/
 │   │   │   ├── Mindmap.jsx   # D3.js force-directed mindmap
 │   │   │   ├── Claude.jsx    # Claude Code configuration
+│   │   │   ├── Rag.jsx       # RAG index & chat interface
+│   │   │   ├── Media.jsx     # Media library + campaigns + image studio
+│   │   │   ├── AdminBackoffice.jsx # User & invitation management
+│   │   │   ├── Account.jsx   # Account settings & profile
+│   │   │   ├── SetPassword.jsx # Invitation password setup
 │   │   │   ├── Terminal.jsx  # Multi-tab PTY terminal + AI
 │   │   │   ├── Dashboard.jsx # System overview + quick access
 │   │   │   ├── Files.jsx     # File explorer + code editor
 │   │   │   ├── System.jsx    # System monitor + processes
 │   │   │   ├── Docker.jsx    # Container & image management
-│   │   │   ├── Projects.jsx  # Project lifecycle management
-│   │   │   ├── Settings.jsx  # SSH key management
+│   │   │   ├── Projects.jsx  # Project lifecycle + RAG indexing
+│   │   │   ├── Settings.jsx  # SSH key & API key management
 │   │   │   └── Login.jsx     # Authentication page
 │   │   ├── components/
-│   │   │   ├── Layout.jsx    # Sidebar (desktop) / bottom nav (mobile)
-│   │   │   ├── StatCard.jsx  # Metric card with progress bar
-│   │   │   ├── CodeEditor.jsx# CodeMirror 6 wrapper
+│   │   │   ├── Layout.jsx    # Sidebar with presence indicator
 │   │   │   └── ...
 │   │   └── styles/
 │   │       └── global.css    # Dark theme + responsive styles
@@ -351,6 +468,7 @@ nexterm/
 │       ├── manifest.json     # PWA manifest
 │       └── sw.js             # Service worker
 │
+├── docker-compose.yml        # Qdrant + app services
 ├── .env.example              # Environment template
 ├── package.json              # Backend dependencies
 └── README.md
@@ -390,12 +508,17 @@ The Vite dev server proxies API requests to the Express backend automatically.
 - [x] Claude Code integration (agents, skills, plugins)
 - [x] AI-enhanced terminal (OpenAI command improvement)
 - [x] MCP plugin system
-- [ ] Multi-user support with role-based access control
+- [x] Multi-user support with role-based access control
+- [x] RAG-powered codebase search (Qdrant + embeddings)
+- [x] Media library with AI campaigns (Gemini)
+- [x] Admin backoffice (users, invitations, email config)
+- [x] Account settings (profile, notifications, security)
+- [x] Real-time presence (who's online)
+- [x] Invitation system with email (Resend)
+- [x] Docker Compose support
 - [ ] Two-factor authentication (2FA)
-- [ ] Docker Compose support
 - [ ] Built-in Nginx reverse proxy management
 - [ ] Automated backups
-- [ ] Notification system (email, webhook)
 - [ ] Dark/light theme toggle
 
 ---

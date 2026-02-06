@@ -12,6 +12,44 @@ export default function Settings() {
   const [error, setError] = useState(null);
   const [confirmRegen, setConfirmRegen] = useState(false);
 
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState({ openai: {}, googleAi: {} });
+  const [openaiKey, setOpenaiKey] = useState('');
+  const [googleAiKey, setGoogleAiKey] = useState('');
+  const [savingKeys, setSavingKeys] = useState(false);
+  const [keysSaved, setKeysSaved] = useState(false);
+
+  const fetchApiKeys = useCallback(async () => {
+    try {
+      const data = await api('/api/settings/api-keys');
+      setApiKeys(data);
+    } catch (_) {}
+  }, []);
+
+  const handleSaveApiKeys = async () => {
+    setSavingKeys(true);
+    setKeysSaved(false);
+    try {
+      await api('/api/settings/api-keys', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          openaiApiKey: openaiKey || undefined,
+          googleAiApiKey: googleAiKey || undefined,
+        }),
+      });
+      setOpenaiKey('');
+      setGoogleAiKey('');
+      setKeysSaved(true);
+      setTimeout(() => setKeysSaved(false), 2000);
+      await fetchApiKeys();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingKeys(false);
+    }
+  };
+
   const fetchKey = useCallback(async () => {
     try {
       setError(null);
@@ -27,7 +65,8 @@ export default function Settings() {
 
   useEffect(() => {
     fetchKey();
-  }, [fetchKey]);
+    fetchApiKeys();
+  }, [fetchKey, fetchApiKeys]);
 
   const handleCopy = async () => {
     if (!sshKey) return;
@@ -203,6 +242,86 @@ export default function Settings() {
             </ol>
           </div>
         </div>
+      </div>
+      {/* API Keys Section */}
+      <div className="settings-section" style={{ marginTop: '32px' }}>
+        <div className="settings-section-header">
+          <h2 className="settings-section-title">API Keys</h2>
+          <div className="settings-section-desc">
+            Configure API keys for AI features (campaigns, image generation).
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-card-header">
+            <h3>OpenAI API Key</h3>
+            <span style={{
+              fontSize: '12px',
+              padding: '2px 10px',
+              borderRadius: '10px',
+              background: apiKeys.openai?.configured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: apiKeys.openai?.configured ? 'var(--success)' : 'var(--danger)',
+            }}>
+              {apiKeys.openai?.configured ? 'Configured' : 'Not set'}
+            </span>
+          </div>
+          {apiKeys.openai?.configured && (
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              Current: {apiKeys.openai.masked}
+            </div>
+          )}
+          <input
+            type="password"
+            placeholder="sk-proj-..."
+            value={openaiKey}
+            onChange={(e) => setOpenaiKey(e.target.value)}
+            style={{
+              width: '100%', padding: '8px 12px', background: 'var(--bg-input)',
+              border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+              color: 'var(--text)', fontSize: '13px', outline: 'none',
+            }}
+          />
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-card-header">
+            <h3>Google AI API Key</h3>
+            <span style={{
+              fontSize: '12px',
+              padding: '2px 10px',
+              borderRadius: '10px',
+              background: apiKeys.googleAi?.configured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: apiKeys.googleAi?.configured ? 'var(--success)' : 'var(--danger)',
+            }}>
+              {apiKeys.googleAi?.configured ? 'Configured' : 'Not set'}
+            </span>
+          </div>
+          {apiKeys.googleAi?.configured && (
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              Current: {apiKeys.googleAi.masked}
+            </div>
+          )}
+          <input
+            type="password"
+            placeholder="AIzaSy..."
+            value={googleAiKey}
+            onChange={(e) => setGoogleAiKey(e.target.value)}
+            style={{
+              width: '100%', padding: '8px 12px', background: 'var(--bg-input)',
+              border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+              color: 'var(--text)', fontSize: '13px', outline: 'none',
+            }}
+          />
+        </div>
+
+        <button
+          className="btn btn-primary"
+          onClick={handleSaveApiKeys}
+          disabled={savingKeys || (!openaiKey && !googleAiKey)}
+          style={{ marginTop: '8px' }}
+        >
+          {savingKeys ? 'Saving...' : keysSaved ? 'Saved!' : 'Save API Keys'}
+        </button>
       </div>
     </div>
   );

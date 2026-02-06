@@ -11,7 +11,8 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { ImageAddon } from '@xterm/addon-image';
 import { SearchAddon } from '@xterm/addon-search';
 import { OverlayAddon } from '../components/OverlayAddon';
-import { getToken, api } from '../api';
+import { getToken, getUser, api } from '../api';
+import usePresence from '../hooks/usePresence';
 import '@xterm/xterm/css/xterm.css';
 
 const LS_KEY = 'terminal-tabs';
@@ -235,6 +236,7 @@ export default function Terminal() {
   const containerRef = useRef(null);
   const socketRef = useRef(null);
   const queryProcessedRef = useRef(false);
+  const { onlineUsers, updateActivity } = usePresence();
 
   // tabs: array of { id, title, project, exited }
   const [tabs, setTabs] = useState([]);
@@ -294,6 +296,45 @@ export default function Terminal() {
   const xtermMapRef = useRef(new Map());
   // Track initialization
   const initRef = useRef(false);
+
+  // Presence avatar cache
+  const [presenceAvatars, setPresenceAvatars] = useState({});
+  const avatarCacheRef = useRef(new Set());
+
+  // Load avatar for any user (including self)
+  const loadAvatar = useCallback((userId) => {
+    if (avatarCacheRef.current.has(userId)) return;
+    avatarCacheRef.current.add(userId);
+    fetch(`/api/account/avatar/${userId}`, {
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    })
+      .then(res => { if (res.ok) return res.blob(); throw new Error(); })
+      .then(blob => setPresenceAvatars(prev => ({ ...prev, [userId]: URL.createObjectURL(blob) })))
+      .catch(() => {});
+  }, []);
+
+  // Load own avatar on mount
+  useEffect(() => {
+    const me = getUser();
+    if (me?.userId) loadAvatar(me.userId);
+  }, [loadAvatar]);
+
+  // Load avatars for all online users with active terminal
+  useEffect(() => {
+    onlineUsers.forEach(u => {
+      if (u.activeSessionId) loadAvatar(u.userId);
+    });
+  }, [onlineUsers, loadAvatar]);
+
+  // --- Presence: report active tab ---
+  useEffect(() => {
+    if (activeTab) {
+      const tab = tabs.find(t => t.id === activeTab);
+      updateActivity(activeTab, tab?.title || null);
+    } else {
+      updateActivity(null, null);
+    }
+  }, [activeTab, tabs, updateActivity]);
 
   // --- Socket connection (single, shared) ---
   useEffect(() => {
@@ -1210,6 +1251,39 @@ export default function Terminal() {
             </span>
           )}
         </div>
+
+        {/* Presence avatars */}
+        {(() => {
+          const currentUser = getUser();
+          const others = onlineUsers.filter(u => u.activeSessionId && u.userId !== currentUser?.userId);
+          const me = onlineUsers.find(u => u.userId === currentUser?.userId);
+          return (
+            <div className="terminal-presence-bar">
+              {/* Current user (you) */}
+              {currentUser && (
+                <div className="presence-avatar presence-avatar-me" title={`${currentUser.email} (you)`}>
+                  {presenceAvatars[currentUser.userId] ? <img src={presenceAvatars[currentUser.userId]} alt="" /> : (currentUser.email?.[0]?.toUpperCase() || '?')}
+                  <span className="presence-status-dot" />
+                </div>
+              )}
+              {/* Other users on terminal */}
+              {others.map(u => {
+                const initial = u.email ? u.email[0].toUpperCase() : '?';
+                const avatarSrc = presenceAvatars[u.userId];
+                return (
+                  <div key={u.userId} className="presence-avatar" title={`${u.email} — ${u.activeSessionTitle || 'Terminal'}`}>
+                    {avatarSrc ? <img src={avatarSrc} alt="" /> : initial}
+                    <span className="presence-status-dot" />
+                  </div>
+                );
+              })}
+              {others.length > 0 && (
+                <span className="presence-label">{others.length} collaborateur{others.length > 1 ? 's' : ''}</span>
+              )}
+            </div>
+          );
+        })()}
+
         <div className="terminal-toolbar-right">
           {/* Theme selector */}
           <div className="terminal-toolbar-dropdown-wrapper" ref={themeMenuRef}>

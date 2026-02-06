@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { clearToken } from '../api';
+import { clearToken, getToken, isAdmin } from '../api';
+import usePresence from '../hooks/usePresence';
 
 const Icons = {
   Dashboard: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
@@ -14,7 +15,11 @@ const Icons = {
   Chevron: ({ isCollapsed }) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform var(--transition)' }}><polyline points="15 18 9 12 15 6"/></svg>,
   Spark: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
   Claude: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>,
-  Mindmap: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>
+  Mindmap: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>,
+  Media: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>,
+  User: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  Shield: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  Rag: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
 };
 
 const navItems = [
@@ -26,20 +31,69 @@ const navItems = [
   { to: '/docker', label: 'Docker', icon: <Icons.Docker /> },
   { to: '/claude', label: 'Claude', icon: <Icons.Claude /> },
   { to: '/mindmap', label: 'Mindmap', icon: <Icons.Mindmap /> },
+  { to: '/media', label: 'Media', icon: <Icons.Media /> },
+  { to: '/rag', label: 'RAG Index', icon: <Icons.Rag /> },
   { to: '/settings', label: 'Settings', icon: <Icons.Settings /> },
 ];
 
 const MOBILE_BREAKPOINT = 768;
 
+function ProfileButton({ collapsed, avatarUrl }) {
+  return (
+    <NavLink
+      to="/account"
+      className={({ isActive }) => `nav-item sidebar-profile-btn ${isActive ? 'active' : ''}`}
+      style={{ gap: collapsed ? 0 : '10px' }}
+    >
+      <span
+        style={{
+          width: '28px',
+          height: '28px',
+          borderRadius: '50%',
+          backgroundColor: 'var(--bg-input)',
+          border: '2px solid var(--border-light)',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}
+      >
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <Icons.User />
+        )}
+      </span>
+      {!collapsed && <span className="nav-label">Account</span>}
+    </NavLink>
+  );
+}
+
 export default function Layout() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= MOBILE_BREAKPOINT);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const { onlineUsers } = usePresence();
+  const showAdmin = isAdmin();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const token = getToken();
+    if (token) {
+      fetch('/api/account/avatar?t=' + Date.now(), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => { if (res.ok) return res.blob(); throw new Error(); })
+        .then(blob => setAvatarUrl(URL.createObjectURL(blob)))
+        .catch(() => {});
+    }
   }, []);
 
   const handleLogout = () => {
@@ -54,16 +108,16 @@ export default function Layout() {
           <Outlet />
         </main>
         <nav className="mobile-bottom-nav">
-          {navItems.slice(0, 5).map((item) => (
+          {navItems.slice(0, 4).map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
               <span className="mobile-nav-icon">{item.icon}</span>
               <span className="mobile-nav-label">{item.label}</span>
             </NavLink>
           ))}
-          <button className="mobile-logout-item" onClick={handleLogout}>
-            <span className="mobile-logout-icon"><Icons.Logout /></span>
-            <span className="mobile-logout-label">Exit</span>
-          </button>
+          <NavLink to="/account" className={({ isActive }) => `mobile-nav-item ${isActive ? 'active' : ''}`}>
+            <span className="mobile-nav-icon"><Icons.User /></span>
+            <span className="mobile-nav-label">Account</span>
+          </NavLink>
         </nav>
       </div>
     );
@@ -106,22 +160,34 @@ export default function Layout() {
               {!collapsed && <span className="nav-label">{item.label}</span>}
             </NavLink>
           ))}
+          {showAdmin && (
+            <>
+              <div className="sidebar-divider" />
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              >
+                <span className="nav-icon"><Icons.Shield /></span>
+                {!collapsed && <span className="nav-label">Admin</span>}
+              </NavLink>
+            </>
+          )}
         </nav>
 
         <div className="sidebar-footer">
+          {!collapsed && onlineUsers.length > 0 && (
+            <div className="sidebar-presence">
+              <span className="presence-dot" />
+              <span className="presence-text">{onlineUsers.length} online</span>
+            </div>
+          )}
+          <ProfileButton collapsed={collapsed} avatarUrl={avatarUrl} />
           <button
             className="btn btn-sm btn-ghost sidebar-collapse-btn"
             onClick={() => setCollapsed(!collapsed)}
           >
             {!collapsed && <span className="collapse-text">Collapse</span>}
             <Icons.Chevron isCollapsed={collapsed} />
-          </button>
-          <button
-            className="btn btn-sm btn-ghost sidebar-logout-btn"
-            onClick={handleLogout}
-          >
-            <Icons.Logout />
-            {!collapsed && <span className="logout-text">Sign Out</span>}
           </button>
         </div>
       </aside>
