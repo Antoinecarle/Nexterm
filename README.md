@@ -4,7 +4,7 @@
 
 ### Next-Gen Self-Hosted VPS Management Dashboard
 
-A powerful, self-hosted web interface for managing your Linux server. Terminal, file explorer, Docker control, system monitoring, and project management -- all from your browser.
+A powerful, self-hosted web interface for managing your Linux server. Terminal, file explorer, Docker control, system monitoring, project management, AI-powered mindmap, and Claude Code integration -- all from your browser.
 
 [![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev/)
@@ -49,6 +49,18 @@ Create new projects, import from GitHub (with real-time git clone progress via S
 
 ![Projects](screenshots/projects.png)
 
+### AI Mindmap
+Interactive force-directed graph visualizing your entire development ecosystem. Projects, plugins, skills, and AI agents displayed as interconnected nodes with D3.js. Drag, zoom, link nodes, and manage relationships visually. Right-click context menus for quick actions. Persistent node positions saved to SQLite.
+
+- **Agent Management**: Create, edit, activate/deactivate Claude Code agents directly from the mindmap. Full inline editing of agent name, description, model, and system prompt
+- **Auto-Discovery**: Agents created via Claude CLI (`~/.claude/agents/*.md`) are automatically detected and displayed
+- **AI-Assisted Prompt Generation**: Generate agent descriptions and system prompts with one click using OpenAI
+- **Project-Agent Linking**: Assign agents to projects visually with drag-and-link or context menu
+- **Central Hub**: Core "nexterm" node at the center with all projects orbiting around it
+
+### Claude Code Integration
+Dedicated configuration page for managing Claude Code settings. View and manage agents, skills, and plugins from a unified interface. Full compatibility with Claude CLI -- agents created from the dashboard work seamlessly with `/agents` in the terminal.
+
 ### SSH Key Management
 Generate and manage Ed25519 SSH keys directly from the settings page. Test your SSH connection to GitHub with one click. Copy public key to clipboard for easy setup.
 
@@ -68,7 +80,8 @@ Installable as a Progressive Web App. Bottom navigation bar, touch-friendly cont
 | Layer | Technologies |
 |-------|-------------|
 | **Backend** | Node.js, Express, Socket.IO, node-pty, better-sqlite3 |
-| **Frontend** | React 18, Vite 5, React Router 6, xterm.js 5, CodeMirror 6 |
+| **Frontend** | React 18, Vite 5, React Router 6, D3.js, xterm.js 5, CodeMirror 6 |
+| **AI** | OpenAI API (gpt-5-mini), Claude Code CLI integration |
 | **Auth** | JWT (24h expiry) + bcrypt password hashing |
 | **Database** | SQLite (terminal sessions) |
 | **SSL** | Self-signed certificate (auto-generated) |
@@ -236,6 +249,28 @@ All routes (except `/api/auth/login`) require a valid JWT token in the `Authoriz
 | `POST` | `/api/settings/ssh-key/regenerate` | Generate new Ed25519 key pair |
 | `POST` | `/api/settings/ssh-test` | Test SSH connection to GitHub |
 
+### Mindmap
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/mindmap/data` | Get full mindmap graph (nodes, links, positions) |
+| `POST` | `/api/mindmap/positions` | Save node positions `{positions: [{node_id, x, y}]}` |
+| `POST` | `/api/mindmap/link` | Link two nodes `{source, target}` |
+| `DELETE` | `/api/mindmap/link` | Unlink two nodes `{source, target}` |
+| `GET` | `/api/mindmap/agents/all` | List all agents with active status |
+| `POST` | `/api/mindmap/agents/activate` | Activate an agent `{name}` |
+| `POST` | `/api/mindmap/agents/deactivate` | Deactivate an agent `{name}` |
+| `POST` | `/api/mindmap/create-agent` | Create a new Claude agent `{name, description, prompt, model}` |
+| `PUT` | `/api/mindmap/agent/:name` | Update agent fields `{description, model, prompt}` |
+| `DELETE` | `/api/mindmap/agent/:name` | Delete an agent |
+| `POST` | `/api/mindmap/assist-agent` | AI-generate agent description & prompt `{name, description}` |
+
+### Claude
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/claude/config` | Get Claude Code configuration |
+
 ### WebSocket
 
 | Namespace | Events | Description |
@@ -259,7 +294,9 @@ nexterm/
 │       ├── docker.js         # Docker management endpoints
 │       ├── terminal.js       # Terminal session CRUD
 │       ├── projects.js       # Project management + git import
-│       └── settings.js       # SSH key management
+│       ├── settings.js       # SSH key management
+│       ├── claude.js         # Claude Code config endpoints
+│       └── mindmap.js        # Mindmap CRUD, agents, AI assist
 │
 ├── client/
 │   ├── src/
@@ -273,7 +310,9 @@ nexterm/
 │   │   │   ├── System.jsx    # System monitor + processes
 │   │   │   ├── Docker.jsx    # Container & image management
 │   │   │   ├── Projects.jsx  # Project lifecycle management
-│   │   │   └── Settings.jsx  # SSH key management
+│   │   │   ├── Settings.jsx  # SSH key management
+│   │   │   ├── Claude.jsx    # Claude Code configuration
+│   │   │   └── Mindmap.jsx   # D3.js force-directed mindmap
 │   │   ├── components/
 │   │   │   ├── Layout.jsx    # Sidebar (desktop) / bottom nav (mobile)
 │   │   │   ├── StatCard.jsx  # Metric card with progress bar
@@ -320,12 +359,14 @@ The Vite dev server proxies API requests to the Express backend automatically.
 
 ## Roadmap
 
+- [x] Plugin system (MCP plugins, skills, agents)
+- [x] AI-powered mindmap visualization
+- [x] Claude Code integration
 - [ ] Multi-user support with role-based access control
 - [ ] Two-factor authentication (2FA)
 - [ ] Docker Compose support
 - [ ] Built-in Nginx reverse proxy management
 - [ ] Automated backups
-- [ ] Plugin system
 - [ ] Notification system (email, webhook)
 - [ ] Dark/light theme toggle
 
