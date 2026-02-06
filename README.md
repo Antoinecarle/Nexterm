@@ -58,8 +58,12 @@ Interactive force-directed graph visualizing your entire development ecosystem. 
 - **Project-Agent Linking**: Assign agents to projects visually with drag-and-link or context menu
 - **Central Hub**: Core "nexterm" node at the center with all projects orbiting around it
 
+![Mindmap](screenshots/mindmap.png)
+
 ### Claude Code Integration
 Dedicated configuration page for managing Claude Code settings. View and manage agents, skills, and plugins from a unified interface. Full compatibility with Claude CLI -- agents created from the dashboard work seamlessly with `/agents` in the terminal.
+
+![Claude Code](screenshots/claude.png)
 
 ### SSH Key Management
 Generate and manage Ed25519 SSH keys directly from the settings page. Test your SSH connection to GitHub with one click. Copy public key to clipboard for easy setup.
