@@ -2,74 +2,93 @@
 
 # Nexterm
 
-### Next-Gen Self-Hosted VPS Management Dashboard
+### AI-Powered Self-Hosted VPS Management
 
-A powerful, self-hosted web interface for managing your Linux server. Terminal, file explorer, Docker control, system monitoring, project management, AI-powered mindmap, and Claude Code integration -- all from your browser.
+Manage your Linux server with AI at the core. Claude Code agents, interactive mindmap, AI-enhanced terminal, file explorer, Docker, monitoring -- a complete development cockpit from your browser.
 
 [![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-integrated-D97706?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTIgMkwyIDdsMTAgNSAxMC01LTEwLTV6TTIgMTdsMTAgNSAxMC01TTIgMTJsMTAgNSAxMC01IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-
-<br />
-
-![Dashboard](screenshots/dashboard.png)
 
 </div>
 
 ---
 
+## AI-First Development
+
+Nexterm is built around the idea that your server management dashboard should understand your projects, your agents, and your AI workflow. It's not just a terminal -- it's a development cockpit where Claude Code, custom agents, and your infrastructure come together.
+
+---
+
 ## Features
 
-### Web Terminal
-Full-featured terminal with multi-tab support (up to 10 sessions), PTY via `node-pty` and `xterm.js`. WebGL-accelerated rendering, search, clipboard, unicode, and web links. 6 built-in color themes (Default, Dracula, Monokai, Solarized Dark, Nord, One Dark). Voice input via Web Speech API. Saveable command snippets. Per-project terminal sessions with persistent history.
+### AI Mindmap -- Your Project Brain
 
-![Terminal](screenshots/terminal.png)
+Interactive force-directed graph that visualizes your entire development ecosystem. Projects, plugins, skills, and AI agents as interconnected nodes. This is where you design, link, and orchestrate everything.
 
-### AI Command Enhancement
-Built-in AI assistant that improves your shell commands. Powered by OpenAI API with multi-turn conversation support. Type a command, hit "AI Enhance", and get an optimized version. Context is preserved across interactions for smarter suggestions.
-
-### File Explorer & Code Editor
-Browse your entire filesystem. Edit files with CodeMirror 6 featuring syntax highlighting for JavaScript, TypeScript, JSON, CSS, HTML, Python, YAML, Markdown, and Shell. Tabbed editing, create/delete files and folders. Upload entire folders with preserved directory structure.
-
-![Files](screenshots/files.png)
-
-### System Monitoring
-Real-time CPU, memory, and disk usage with auto-refresh (5s interval). Top processes table sorted by resource consumption. Server hostname, kernel version, load average, and uptime at a glance.
-
-![System Monitor](screenshots/system.png)
-
-### Docker Management
-List, start, stop, restart, pause, unpause, and remove containers. View container logs. Browse Docker images. All from a clean card-based interface with real-time refresh.
-
-![Docker](screenshots/docker.png)
-
-### Project Management
-Create new projects, import from GitHub (with real-time git clone progress via SSE), upload folders, manage terminal sessions per project, and delete projects. Full project lifecycle from one page.
-
-![Projects](screenshots/projects.png)
-
-### AI Mindmap
-Interactive force-directed graph visualizing your entire development ecosystem. Projects, plugins, skills, and AI agents displayed as interconnected nodes with D3.js. Drag, zoom, link nodes, and manage relationships visually. Right-click context menus for quick actions. Persistent node positions saved to SQLite.
-
-- **Agent Management**: Create, edit, activate/deactivate Claude Code agents directly from the mindmap. Full inline editing of agent name, description, model, and system prompt
-- **Auto-Discovery**: Agents created via Claude CLI (`~/.claude/agents/*.md`) are automatically detected and displayed
-- **AI-Assisted Prompt Generation**: Generate agent descriptions and system prompts with one click using OpenAI
-- **Project-Agent Linking**: Assign agents to projects visually with drag-and-link or context menu
-- **Central Hub**: Core "nexterm" node at the center with all projects orbiting around it
+- **Create & edit Claude Code agents** directly from the UI -- name, description, model, system prompt
+- **Auto-discovery** -- agents created via CLI (`~/.claude/agents/*.md`) appear automatically
+- **AI-assisted prompt generation** -- one click to generate agent descriptions and system prompts with OpenAI
+- **Link agents to projects** visually with drag-and-link or context menu
+- **Activate / deactivate agents** with toggle switches -- control what's visible without deleting
+- **Central hub** -- core nexterm node at the center, projects orbit around it
 
 ![Mindmap](screenshots/mindmap.png)
 
 ### Claude Code Integration
-Dedicated configuration page for managing Claude Code settings. View and manage agents, skills, and plugins from a unified interface. Full compatibility with Claude CLI -- agents created from the dashboard work seamlessly with `/agents` in the terminal.
+
+Full bridge between Nexterm and Claude Code CLI. Agents you create from the dashboard work instantly with `/agents` in the terminal. Manage permissions, view CLAUDE.md rules, and configure everything from a dedicated page.
+
+- Agents stored as `~/.claude/agents/*.md` (native Claude CLI format)
+- Quick commands: `claude --nextmode`, `claude-init`, custom agent invocations
+- View and manage permissions, global settings, project rules
 
 ![Claude Code](screenshots/claude.png)
 
+### AI-Enhanced Terminal
+
+Full-featured PTY terminal with built-in AI. Multi-tab (up to 10 sessions), WebGL rendering, 6 color themes. The AI layer improves your shell commands in real-time -- type a command, hit "AI Enhance", get an optimized version. Multi-turn context is preserved across interactions.
+
+- Per-project terminal sessions with persistent history
+- Voice input via Web Speech API
+- Saveable command snippets
+- Search, clipboard, unicode, web links
+
+![Terminal](screenshots/terminal.png)
+
+### File Explorer & Code Editor
+
+Browse your entire filesystem. Edit with CodeMirror 6 -- syntax highlighting for JS, TS, JSON, CSS, HTML, Python, YAML, Markdown, Shell. Tabbed editing, folder upload with preserved structure.
+
+![Files](screenshots/files.png)
+
+### Project Management
+
+Create, import from GitHub (real-time git clone via SSE), upload folders, link terminal sessions and AI agents per project. Full lifecycle management.
+
+![Projects](screenshots/projects.png)
+
+### Docker Management
+
+List, start, stop, restart, pause, remove containers. View logs. Browse images. Clean card-based interface with real-time refresh.
+
+![Docker](screenshots/docker.png)
+
+### System Monitoring
+
+Real-time CPU, memory, disk with 5s auto-refresh. Top processes, hostname, kernel, load average, uptime.
+
+![System Monitor](screenshots/system.png)
+
 ### SSH Key Management
-Generate and manage Ed25519 SSH keys directly from the settings page. Test your SSH connection to GitHub with one click. Copy public key to clipboard for easy setup.
+
+Generate Ed25519 keys, test GitHub connection, copy public key -- all from settings.
 
 ### Mobile-First PWA
-Installable as a Progressive Web App. Bottom navigation bar, touch-friendly controls (44px minimum tap targets), responsive layouts. The terminal includes a mobile control bar with arrow keys, Enter, Tab, Esc, and Ctrl shortcuts.
+
+Installable PWA. Bottom nav, 44px touch targets, responsive layouts. Mobile terminal with control bar (arrows, Enter, Tab, Esc, Ctrl+C/D).
 
 <div align="center">
 <img src="screenshots/mobile-dashboard.png" width="280" alt="Mobile Dashboard" />
@@ -83,11 +102,11 @@ Installable as a Progressive Web App. Bottom navigation bar, touch-friendly cont
 
 | Layer | Technologies |
 |-------|-------------|
+| **AI** | OpenAI API (gpt-5-mini), Claude Code CLI, custom agents (`~/.claude/agents/*.md`) |
 | **Backend** | Node.js, Express, Socket.IO, node-pty, better-sqlite3 |
 | **Frontend** | React 18, Vite 5, React Router 6, D3.js, xterm.js 5, CodeMirror 6 |
-| **AI** | OpenAI API (gpt-5-mini), Claude Code CLI integration |
 | **Auth** | JWT (24h expiry) + bcrypt password hashing |
-| **Database** | SQLite (terminal sessions) |
+| **Database** | SQLite (sessions, mindmap state, agent tracking) |
 | **SSL** | Self-signed certificate (auto-generated) |
 | **PWA** | Service worker, manifest, offline shell caching |
 | **Style** | Custom CSS, dark theme, mobile-first responsive |
@@ -164,28 +183,32 @@ node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('your-password', 10).th
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   Browser                        │
-│         (React SPA / PWA / Mobile)               │
-└────────────────┬────────────────────────────────┘
-                 │ HTTPS (443)
-┌────────────────▼────────────────────────────────┐
-│              Express Server                      │
-│                                                  │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────┐ │
-│  │ REST API │  │ Static   │  │  Socket.IO    │ │
-│  │ (JWT)    │  │ Files    │  │  (Terminal)   │ │
-│  └────┬─────┘  └──────────┘  └───────┬───────┘ │
-│       │                              │          │
-│  ┌────▼─────────────────────────────▼────────┐  │
-│  │              Node.js Runtime               │  │
-│  │                                            │  │
-│  │  ┌─────────┐ ┌────────┐ ┌──────────────┐ │  │
-│  │  │node-pty │ │SQLite  │ │ Docker API   │ │  │
-│  │  │(PTY)    │ │(DB)    │ │ (REST)       │ │  │
-│  │  └─────────┘ └────────┘ └──────────────┘ │  │
-│  └────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│                    Browser                           │
+│          (React SPA / PWA / Mobile)                  │
+└───────────────────┬─────────────────────────────────┘
+                    │ HTTPS (443)
+┌───────────────────▼─────────────────────────────────┐
+│               Express Server                         │
+│                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌────────────────────┐ │
+│  │ REST API │  │ Static   │  │    Socket.IO       │ │
+│  │  (JWT)   │  │ Files    │  │ (Terminal + AI)    │ │
+│  └────┬─────┘  └──────────┘  └────────┬───────────┘ │
+│       │                               │              │
+│  ┌────▼───────────────────────────────▼────────────┐ │
+│  │               Node.js Runtime                    │ │
+│  │                                                  │ │
+│  │  ┌─────────┐ ┌────────┐ ┌────────┐ ┌─────────┐ │ │
+│  │  │node-pty │ │SQLite  │ │Docker  │ │OpenAI   │ │ │
+│  │  │ (PTY)   │ │ (DB)   │ │  API   │ │  API    │ │ │
+│  │  └─────────┘ └────────┘ └────────┘ └─────────┘ │ │
+│  │                                                  │ │
+│  │  ┌──────────────────────────────────────────┐   │ │
+│  │  │  ~/.claude/agents/*.md  (Claude Code)    │   │ │
+│  │  └──────────────────────────────────────────┘   │ │
+│  └──────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -194,66 +217,7 @@ node -e "const bcrypt = require('bcryptjs'); bcrypt.hash('your-password', 10).th
 
 All routes (except `/api/auth/login`) require a valid JWT token in the `Authorization: Bearer <token>` header.
 
-### Authentication
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/auth/login` | Login with email + password, returns JWT |
-
-### System
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/system/info` | CPU, RAM, disk, uptime, OS info |
-| `GET` | `/api/system/processes` | Top processes by resource usage |
-
-### Files
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/files/list?path=` | List directory contents |
-| `GET` | `/api/files/read?path=` | Read file content (max 2MB) |
-| `POST` | `/api/files/write` | Write file `{path, content}` |
-| `POST` | `/api/files/mkdir` | Create directory `{path}` |
-| `DELETE` | `/api/files?path=` | Delete file or directory |
-
-### Docker
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/docker/containers` | List all containers |
-| `GET` | `/api/docker/images` | List all images |
-| `POST` | `/api/docker/containers/:id/:action` | Container action (start/stop/restart/pause/unpause/remove) |
-| `GET` | `/api/docker/containers/:id/logs` | Get container logs |
-
-### Terminal Sessions
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/terminal/sessions` | List all sessions |
-| `POST` | `/api/terminal/sessions` | Create session `{name, project, cols, rows}` |
-| `PATCH` | `/api/terminal/sessions/:id` | Rename session `{name}` |
-| `DELETE` | `/api/terminal/sessions/:id` | Delete session |
-
-### Projects
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/projects` | List projects with metadata |
-| `POST` | `/api/projects` | Create empty project `{name}` |
-| `POST` | `/api/projects/import` | Git clone via SSE `{url, name?}` |
-| `POST` | `/api/projects/upload` | Upload folder (multipart) |
-| `DELETE` | `/api/projects/:name` | Delete project |
-
-### Settings
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/settings/ssh-key` | Get public SSH key |
-| `POST` | `/api/settings/ssh-key/regenerate` | Generate new Ed25519 key pair |
-| `POST` | `/api/settings/ssh-test` | Test SSH connection to GitHub |
-
-### Mindmap
+### Mindmap & Agents
 
 | Method | Route | Description |
 |--------|-------|-------------|
@@ -275,6 +239,65 @@ All routes (except `/api/auth/login`) require a valid JWT token in the `Authoriz
 |--------|-------|-------------|
 | `GET` | `/api/claude/config` | Get Claude Code configuration |
 
+### Authentication
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/api/auth/login` | Login with email + password, returns JWT |
+
+### Terminal Sessions
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/terminal/sessions` | List all sessions |
+| `POST` | `/api/terminal/sessions` | Create session `{name, project, cols, rows}` |
+| `PATCH` | `/api/terminal/sessions/:id` | Rename session `{name}` |
+| `DELETE` | `/api/terminal/sessions/:id` | Delete session |
+
+### Files
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/files/list?path=` | List directory contents |
+| `GET` | `/api/files/read?path=` | Read file content (max 2MB) |
+| `POST` | `/api/files/write` | Write file `{path, content}` |
+| `POST` | `/api/files/mkdir` | Create directory `{path}` |
+| `DELETE` | `/api/files?path=` | Delete file or directory |
+
+### Projects
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/projects` | List projects with metadata |
+| `POST` | `/api/projects` | Create empty project `{name}` |
+| `POST` | `/api/projects/import` | Git clone via SSE `{url, name?}` |
+| `POST` | `/api/projects/upload` | Upload folder (multipart) |
+| `DELETE` | `/api/projects/:name` | Delete project |
+
+### Docker
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/docker/containers` | List all containers |
+| `GET` | `/api/docker/images` | List all images |
+| `POST` | `/api/docker/containers/:id/:action` | Container action (start/stop/restart/pause/unpause/remove) |
+| `GET` | `/api/docker/containers/:id/logs` | Get container logs |
+
+### System
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/system/info` | CPU, RAM, disk, uptime, OS info |
+| `GET` | `/api/system/processes` | Top processes by resource usage |
+
+### Settings
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/settings/ssh-key` | Get public SSH key |
+| `POST` | `/api/settings/ssh-key/regenerate` | Generate new Ed25519 key pair |
+| `POST` | `/api/settings/ssh-test` | Test SSH connection to GitHub |
+
 ### WebSocket
 
 | Namespace | Events | Description |
@@ -290,33 +313,33 @@ nexterm/
 ├── server/
 │   ├── index.js              # Entry point: Express + HTTPS + Socket.IO
 │   ├── auth.js               # JWT authentication + middleware
-│   ├── db.js                 # SQLite database (terminal sessions)
+│   ├── db.js                 # SQLite database (sessions, mindmap, agents)
 │   ├── terminal.js           # WebSocket PTY terminal handler
 │   └── routes/
+│       ├── mindmap.js        # Mindmap CRUD, agents, AI assist
+│       ├── claude.js         # Claude Code config endpoints
 │       ├── system.js         # System monitoring endpoints
 │       ├── files.js          # File explorer endpoints
 │       ├── docker.js         # Docker management endpoints
 │       ├── terminal.js       # Terminal session CRUD
 │       ├── projects.js       # Project management + git import
-│       ├── settings.js       # SSH key management
-│       ├── claude.js         # Claude Code config endpoints
-│       └── mindmap.js        # Mindmap CRUD, agents, AI assist
+│       └── settings.js       # SSH key management
 │
 ├── client/
 │   ├── src/
 │   │   ├── App.jsx           # Routes & layout
 │   │   ├── api.js            # JWT-authenticated fetch wrapper
 │   │   ├── pages/
-│   │   │   ├── Login.jsx     # Authentication page
+│   │   │   ├── Mindmap.jsx   # D3.js force-directed mindmap
+│   │   │   ├── Claude.jsx    # Claude Code configuration
+│   │   │   ├── Terminal.jsx  # Multi-tab PTY terminal + AI
 │   │   │   ├── Dashboard.jsx # System overview + quick access
-│   │   │   ├── Terminal.jsx  # Multi-tab PTY terminal
 │   │   │   ├── Files.jsx     # File explorer + code editor
 │   │   │   ├── System.jsx    # System monitor + processes
 │   │   │   ├── Docker.jsx    # Container & image management
 │   │   │   ├── Projects.jsx  # Project lifecycle management
 │   │   │   ├── Settings.jsx  # SSH key management
-│   │   │   ├── Claude.jsx    # Claude Code configuration
-│   │   │   └── Mindmap.jsx   # D3.js force-directed mindmap
+│   │   │   └── Login.jsx     # Authentication page
 │   │   ├── components/
 │   │   │   ├── Layout.jsx    # Sidebar (desktop) / bottom nav (mobile)
 │   │   │   ├── StatCard.jsx  # Metric card with progress bar
@@ -363,9 +386,10 @@ The Vite dev server proxies API requests to the Express backend automatically.
 
 ## Roadmap
 
-- [x] Plugin system (MCP plugins, skills, agents)
 - [x] AI-powered mindmap visualization
-- [x] Claude Code integration
+- [x] Claude Code integration (agents, skills, plugins)
+- [x] AI-enhanced terminal (OpenAI command improvement)
+- [x] MCP plugin system
 - [ ] Multi-user support with role-based access control
 - [ ] Two-factor authentication (2FA)
 - [ ] Docker Compose support
@@ -396,7 +420,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**Built with Node.js, React, and a lot of terminal sessions.**
+**Built with Claude Code, Node.js, React, and a lot of terminal sessions.**
 
 [Report Bug](https://github.com/Antoinecarle/Nexterm/issues) | [Request Feature](https://github.com/Antoinecarle/Nexterm/issues)
 
